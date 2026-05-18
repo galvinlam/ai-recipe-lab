@@ -6,13 +6,36 @@
   </a>
 </p>
 
-AI Recipe Lab is a static GitHub Pages portfolio demo for Galvin Lam. It shows how an AI-assisted tool could transform messy real-world cooking media, such as YouTube videos and playlists, into structured recipe cards that are easier to review, cook from, and save.
+AI Recipe Lab started from a practical problem: cooking videos are easy to watch once and hard to use later.
+
+A useful recipe might be buried inside a twenty-minute YouTube video, split across narration, subtitles, camera shots, pinned comments, and casual phrases like "a splash," "a little bit," or `少許`. Playlists make the problem bigger. They are great for discovery, but not great when you want to compare recipes, search ingredients, or cook from them without replaying the video.
+
+This project explores how AI can turn that messy media into something structured. The idea is to capture a video or playlist, read the transcript-like text, detect the language, pull out ingredients, normalize rough quantities, build a cooking timeline, and leave uncertainty visible for human review.
 
 ![AI Recipe Lab screenshot](docs/assets/ai-recipe-lab-main.png)
 
-## Purpose
+## Workflow
 
-The project demonstrates a practical AI workflow without needing a backend, API key, build step, or external dependencies. It is designed to be screenshotable for a college portfolio and clear enough for a reviewer to understand in one browser view.
+```mermaid
+flowchart LR
+  A["YouTube video or playlist"] --> B["Transcript and metadata capture"]
+  B --> C["Language detection"]
+  C --> D["Ingredient extraction"]
+  D --> E["Quantity normalization"]
+  E --> F["Cooking step timeline"]
+  F --> G["Recipe card"]
+  G --> H["Review gaps and confidence notes"]
+  H --> I["Save to knowledge base"]
+
+  C -. "English, Traditional Chinese, Japanese, mixed subtitles" .-> D
+  H -. "AI flags uncertain amounts, missing temperatures, and visual-only steps" .-> G
+```
+
+## How AI Fits In
+
+AI is useful here because the input is not clean data. It has narration, incomplete subtitles, visual context, multilingual phrasing, and vague cooking language. The workflow uses AI as a translator between messy source material and a recipe card that a person can actually use.
+
+The important part is not pretending the extraction is perfect. The interface keeps confidence and review gaps visible, so a human can quickly check uncertain quantities, missing temperatures, or steps that were shown on camera but not spoken clearly.
 
 ## Usage
 
@@ -50,7 +73,7 @@ Included sample cards:
 
 ## Why It Exists
 
-Cooking videos are useful but hard to search, compare, translate, or cook from later. AI Recipe Lab presents a portfolio-friendly example of using AI to convert unstructured media into a useful structured artifact while keeping uncertainty visible for human review.
+The goal is to make cooking videos easier to reuse. Instead of leaving good recipes trapped inside video timelines, AI Recipe Lab shows a path from unstructured media to organized kitchen notes: ingredients, method, timing, language context, and places where the AI needs a person to double-check.
 
 ## Files
 
