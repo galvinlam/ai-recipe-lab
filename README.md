@@ -8,7 +8,7 @@
 
 AI Recipe Lab is a URL-to-card prototype for turning YouTube cooking videos or playlists into recipe notes that can be ingested by LLM Wiki.
 
-Paste a YouTube link, click `Process Link`, review the generated card, then copy or download an LLM Wiki-ready markdown file.
+Paste a YouTube link, click `Process Link`, review the generated card, then copy or download an LLM Wiki-ready markdown file. Sample-looking URLs load richer built-in examples; unknown URLs generate a generic imported-video card using the pasted link as the source.
 
 ![AI Recipe Lab screenshot](docs/assets/ai-recipe-lab-main.png)
 

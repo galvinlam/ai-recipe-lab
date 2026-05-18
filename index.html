@@ -1261,6 +1261,46 @@
       return `---\nsource: ${recipe.url}\nlanguage: ${recipe.language}\ntags: [${tags.join(", ")}]\nconfidence: ${recipe.confidence}\ningest_target: llm-wiki/raw/inbox/recipes\nreview_gaps:\n${gaps}\n---\n\n# ${recipe.title}\n\n${recipe.summary}\n\n## Ingredients\n\n${ingredients}\n\n## Method Timeline\n\n${steps}\n\n## Review Gaps\n\n${gaps}\n`;
     }
 
+    function genericRecipeFromUrl(url) {
+      let host = "YouTube";
+      try {
+        host = new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        host = "YouTube";
+      }
+
+      return {
+        id: "imported",
+        label: "Imported Cooking Video",
+        sourceType: "Imported",
+        url,
+        language: "Unknown / needs transcript",
+        languageCode: "AI",
+        ingredientCount: 6,
+        duration: "pending",
+        confidence: 64,
+        title: "Imported Cooking Video",
+        summary: `A generated starter card for a pasted source from ${host}. A connected backend would replace this with transcript-based extraction.`,
+        ingredients: [
+          ["Primary ingredient", "from transcript"],
+          ["Seasoning", "needs extraction"],
+          ["Liquid or sauce", "needs extraction"],
+          ["Aromatics", "needs extraction"],
+          ["Garnish", "optional"],
+          ["Cooking fat", "needs extraction"]
+        ],
+        steps: [
+          ["00:00", "Capture source", "Save the pasted URL and metadata as the source record."],
+          ["--:--", "Extract transcript", "A backend worker would run transcript or caption extraction."],
+          ["--:--", "Synthesize recipe", "The LLM would create ingredients, method, timing, and review gaps from the extracted content."]
+        ],
+        gaps: [
+          ["Live extraction", "This public demo does not fetch YouTube transcripts."],
+          ["Human review", "Ingredient amounts and timing need confirmation from the real source."]
+        ]
+      };
+    }
+
     const iconPaths = {
       play: '<polygon points="9 7 19 12 9 17 9 7"></polygon><rect x="3" y="5" width="18" height="14" rx="3"></rect>',
       text: '<path d="M5 7h14"></path><path d="M5 12h14"></path><path d="M5 17h9"></path>',
@@ -1402,13 +1442,16 @@
 
     function selectRecipeFromUrl(url) {
       const normalized = url.toLowerCase();
+      if (normalized.includes("miso") || normalized.includes("udon")) {
+        return recipes.find((recipe) => recipe.id === "miso");
+      }
       if (normalized.includes("playlist") || normalized.includes("congee") || normalized.includes("粥")) {
         return recipes.find((recipe) => recipe.id === "congee");
       }
       if (normalized.includes("taco") || normalized.includes("fish")) {
         return recipes.find((recipe) => recipe.id === "tacos");
       }
-      return recipes.find((recipe) => recipe.id === "miso");
+      return genericRecipeFromUrl(url);
     }
 
     function processSource(event) {
