@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Recipe Lab</title>
+  <meta name="description" content="Static portfolio demo showing how AI can turn messy cooking videos and playlists into structured recipe cards.">
+  <style>
+    :root {
+      --bg: #fff8ed;
+      --paper: #fffdf8;
+      --ink: #24160e;
+      --muted: #6f5d4e;
+      --line: #ead8c5;
+      --tomato: #d84a2b;
+      --saffron: #f0a51d;
+      --leaf: #27755f;
+      --blue: #2e66b8;
+      --shadow: 0 24px 70px rgba(99, 56, 28, 0.14);
+      --radius-xl: 34px;
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --font-display: Georgia, "Times New Roman", serif;
+      --font-ui: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(240, 165, 29, 0.24), transparent 28rem),
+        radial-gradient(circle at 90% 4%, rgba(216, 74, 43, 0.16), transparent 25rem),
+        linear-gradient(120deg, #fff8ed 0%, #fff4e6 48%, #f9ead8 100%);
+      font-family: var(--font-ui);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 34px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      font-size: 1.05rem;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      color: #fffdf8;
+      background: conic-gradient(from 160deg, var(--tomato), var(--saffron), var(--leaf), var(--tomato));
+      border-radius: 15px;
+      box-shadow: 0 12px 28px rgba(216, 74, 43, 0.22);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    nav a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 0.88fr) minmax(430px, 1.12fr);
+      gap: 30px;
+      align-items: stretch;
+    }
+
+    .hero-copy,
+    .demo-shell,
+    .panel,
+    .recipe-card {
+      background: rgba(255, 253, 248, 0.84);
+      border: 1px solid rgba(234, 216, 197, 0.9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-copy {
+      border-radius: var(--radius-xl);
+      padding: 42px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      bottom: -120px;
+      width: 250px;
+      height: 250px;
+      background: repeating-linear-gradient(45deg, rgba(216, 74, 43, 0.12) 0 10px, transparent 10px 21px);
+      border-radius: 50%;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      font-family: var(--font-display);
+      letter-spacing: -0.045em;
+      line-height: 0.97;
+    }
+
+    h1 {
+      max-width: 8.8em;
+      font-size: clamp(3rem, 8vw, 6.6rem);
+    }
+
+    .hero-copy p {
+      position: relative;
+      z-index: 1;
+      max-width: 39rem;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.7;
+      margin: 24px 0 28px;
+    }
+
+    .hero-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 18px;
+      color: #fffdf8;
+      background: var(--ink);
+      text-decoration: none;
+      font-size: 0.93rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .button.secondary {
+      color: var(--ink);
+      background: #f5e2cc;
+      border: 1px solid var(--line);
+    }
+
+    .demo-note {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .note-chip {
+      min-height: 92px;
+      border-radius: 20px;
+      padding: 14px;
+      background: #fff7eb;
+      border: 1px solid var(--line);
+    }
+
+    .note-chip strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .note-chip span {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .demo-shell {
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .demo-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      background: #2b1b12;
+      color: #fff8ed;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .window-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: var(--saffron);
+    }
+
+    .window-dots span:nth-child(2) {
+      background: var(--tomato);
+    }
+
+    .window-dots span:nth-child(3) {
+      background: var(--leaf);
+    }
+
+    .demo-status {
+      font-size: 0.82rem;
+      color: #f5dcc4;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 0.94fr 1.06fr;
+      min-height: 600px;
+    }
+
+    .input-panel {
+      padding: 20px;
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, #fffaf2, #fff2e1);
+    }
+
+    .control-label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .input-card {
+      margin-top: 10px;
+      border-radius: 22px;
+      background: #2b1b12;
+      color: #fff8ed;
+      padding: 16px;
+      box-shadow: inset 0 0 0 1px rgba(255, 248, 237, 0.08);
+    }
+
+    .input-url {
+      word-break: break-word;
+      color: #f8d7b5;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .example-switcher {
+      display: grid;
+      gap: 10px;
+      margin: 16px 0 18px;
+    }
+
+    .example-button {
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 10px;
+      text-align: left;
+      color: var(--ink);
+      background: rgba(255, 253, 248, 0.82);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .example-button:hover,
+    .example-button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(216, 74, 43, 0.45);
+      outline: none;
+    }
+
+    .example-button.active {
+      border-color: var(--tomato);
+      background: #fff8ed;
+    }
+
+    .thumb {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      color: #fffdf8;
+      background: var(--tomato);
+      font-weight: 900;
+    }
+
+    .example-button:nth-child(2) .thumb {
+      background: var(--leaf);
+    }
+
+    .example-button:nth-child(3) .thumb {
+      background: var(--blue);
+    }
+
+    .example-title {
+      display: block;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .example-meta {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .language-pill {
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: #f1dfc9;
+      color: #5f422e;
+      font-size: 0.74rem;
+      font-weight: 900;
+    }
+
+    .workflow-mini {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .mini-step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 9px;
+      align-items: center;
+      padding: 9px;
+      border: 0;
+      border-radius: 14px;
+      color: var(--muted);
+      background: transparent;
+      text-align: left;
+    }
+
+    .mini-step.active {
+      color: var(--ink);
+      background: #fffdf8;
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .mini-step-icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      color: #fffdf8;
+      background: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .preview-panel {
+      padding: 20px;
+      background:
+        linear-gradient(135deg, rgba(240, 165, 29, 0.13), transparent 42%),
+        #fffaf4;
+    }
+
+    .analysis-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      border-radius: 17px;
+      padding: 12px;
+      background: rgba(255, 253, 248, 0.9);
+      border: 1px solid var(--line);
+    }
+
+    .stat b {
+      display: block;
+      font-size: 1.1rem;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .recipe-card {
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: 0 16px 44px rgba(80, 45, 22, 0.12);
+    }
+
+    .recipe-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+
+    .recipe-head h2 {
+      font-size: clamp(2rem, 4vw, 3.3rem);
+    }
+
+    .recipe-head p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .score-ring {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      background: conic-gradient(var(--leaf) var(--score), #efdfcf 0);
+    }
+
+    .score-ring span {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--paper);
+      font-weight: 900;
+      font-size: 0.92rem;
+    }
+
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 18px;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .ingredient-list {
+      display: grid;
+      gap: 8px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .ingredient-list li,
+    .gap-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px dashed #e5cfb8;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .ingredient-list strong {
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline-step {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .time-code {
+      display: grid;
+      place-items: center;
+      min-height: 42px;
+      border-radius: 14px;
+      color: #fffdf8;
+      background: var(--tomato);
+      font-weight: 900;
+      font-size: 0.8rem;
+    }
+
+    .timeline-step:nth-child(even) .time-code {
+      background: var(--leaf);
+    }
+
+    .timeline-step b {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .timeline-step span {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .workflow-section {
+      margin-top: 30px;
+      border-radius: var(--radius-xl);
+      padding: 30px;
+      color: #fff8ed;
+      background:
+        linear-gradient(135deg, rgba(216, 74, 43, 0.16), transparent 45%),
+        #24160e;
+      box-shadow: var(--shadow);
+    }
+
+    .workflow-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .workflow-header h2 {
+      font-size: clamp(2.3rem, 5vw, 4.6rem);
+    }
+
+    .workflow-header p {
+      max-width: 33rem;
+      margin: 0;
+      color: #e8cbb1;
+      line-height: 1.55;
+    }
+
+    .workflow-rail {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 10px;
+    }
+
+    .workflow-step {
+      min-height: 155px;
+      border: 1px solid rgba(255, 248, 237, 0.16);
+      border-radius: 20px;
+      padding: 13px;
+      color: #fff8ed;
+      background: rgba(255, 248, 237, 0.07);
+      text-align: left;
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+    .workflow-step:hover,
+    .workflow-step:focus-visible {
+      transform: translateY(-4px);
+      outline: none;
+    }
+
+    .workflow-step.active {
+      background: #fff8ed;
+      color: var(--ink);
+    }
+
+    .workflow-step svg {
+      width: 28px;
+      height: 28px;
+      margin-bottom: 12px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .workflow-step strong {
+      display: block;
+      font-size: 0.88rem;
+      line-height: 1.15;
+    }
+
+    .workflow-step span {
+      display: block;
+      margin-top: 8px;
+      color: currentColor;
+      opacity: 0.72;
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 30px;
+    }
+
+    .panel {
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .panel h2 {
+      font-size: clamp(2rem, 4vw, 3.8rem);
+      margin-bottom: 12px;
+    }
+
+    .language-samples {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .language-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: #fff8ed;
+      border: 1px solid var(--line);
+    }
+
+    .language-row b {
+      color: var(--tomato);
+    }
+
+    .language-row span {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .gap-list {
+      padding: 0;
+      margin: 10px 0 0;
+      list-style: none;
+    }
+
+    .gap-list li {
+      align-items: flex-start;
+    }
+
+    .gap-list b {
+      color: var(--ink);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .detail-grid,
+      .workspace,
+      .recipe-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .input-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .workflow-rail {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        width: min(100% - 22px, 1180px);
+        padding-top: 16px;
+      }
+
+      .topbar,
+      .workflow-header,
+      .footer,
+      .recipe-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      nav {
+        width: 100%;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.82rem;
+      }
+
+      .hero-copy,
+      .workflow-section,
+      .panel {
+        padding: 22px;
+        border-radius: 24px;
+      }
+
+      .demo-note,
+      .analysis-strip,
+      .workflow-rail {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-step {
+        min-height: auto;
+      }
+
+      .language-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-copy,
+      .demo-shell,
+      .workflow-section,
+      .panel {
+        animation: rise 640ms ease both;
+      }
+
+      .demo-shell {
+        animation-delay: 90ms;
+      }
+
+      .workflow-section {
+        animation-delay: 160ms;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand" aria-label="AI Recipe Lab">
+        <span class="brand-mark" aria-hidden="true">AI</span>
+        <span>AI Recipe Lab</span>
+      </div>
+      <nav aria-label="Page navigation">
+        <a href="#demo">Demo</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#language">Languages</a>
+        <a href="#confidence">Confidence</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="demo">
+        <div class="hero-copy">
+          <h1>Turn cooking videos into recipe cards.</h1>
+          <p>
+            A static portfolio demo of an AI-assisted workflow: capture a YouTube video or playlist,
+            clean up transcript noise, detect language, normalize ingredients, build timed steps, and save
+            the result as a structured kitchen knowledge card.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#workflow">Explore the workflow</a>
+            <a class="button secondary" href="#language">See multilingual examples</a>
+          </div>
+          <div class="demo-note" aria-label="Project highlights">
+            <div class="note-chip">
+              <strong>Static demo</strong>
+              <span>Sample outputs are hand-authored to show the interface concept. No real YouTube extraction runs here.</span>
+            </div>
+            <div class="note-chip">
+              <strong>Portfolio ready</strong>
+              <span>Built for screenshots: workflow, input, generated card, timeline, and gaps are visible at once.</span>
+            </div>
+            <div class="note-chip">
+              <strong>Multilingual</strong>
+              <span>Examples include English, Traditional Chinese, and Japanese cooking instructions.</span>
+            </div>
+          </div>
+        </div>
+
+        <section class="demo-shell" aria-label="Interactive recipe extraction demo">
+          <div class="demo-top">
+            <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="demo-status" id="activeStepLabel">Preview: Capture video or playlist</div>
+          </div>
+          <div class="workspace">
+            <aside class="input-panel">
+              <div class="control-label">Input examples</div>
+              <div class="input-card">
+                <div class="control-label">Source URL</div>
+                <div class="input-url" id="sourceUrl"></div>
+              </div>
+              <div class="example-switcher" aria-label="Recipe examples"></div>
+
+              <div class="control-label">Click a workflow step</div>
+              <div class="workflow-mini" aria-label="Workflow controls"></div>
+            </aside>
+
+            <section class="preview-panel" aria-live="polite">
+              <div class="analysis-strip">
+                <div class="stat">
+                  <b id="languageStat"></b>
+                  <span>Detected language</span>
+                </div>
+                <div class="stat">
+                  <b id="ingredientStat"></b>
+                  <span>Ingredients found</span>
+                </div>
+                <div class="stat">
+                  <b id="timeStat"></b>
+                  <span>Method timing</span>
+                </div>
+              </div>
+
+              <article class="recipe-card">
+                <header class="recipe-head">
+                  <div>
+                    <h2 id="recipeTitle"></h2>
+                    <p id="recipeSummary"></p>
+                  </div>
+                  <div class="score-ring" id="scoreRing" aria-label="Confidence score">
+                    <span id="confidenceScore"></span>
+                  </div>
+                </header>
+                <div class="recipe-grid">
+                  <section>
+                    <p class="section-title">Normalized ingredients</p>
+                    <ul class="ingredient-list" id="ingredientList"></ul>
+                  </section>
+                  <section>
+                    <p class="section-title">Cooking method timeline</p>
+                    <div class="timeline" id="timeline"></div>
+                  </section>
+                </div>
+              </article>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section class="workflow-section" id="workflow">
+        <div class="workflow-header">
+          <h2>Messy media, clean kitchen memory.</h2>
+          <p id="workflowDetail">
+            The rail below shows each stage from playlist capture to a saved knowledge-base card.
+            Click any step to update the active preview state.
+          </p>
+        </div>
+        <div class="workflow-rail" aria-label="AI Recipe Lab workflow"></div>
+      </section>
+
+      <section class="detail-grid">
+        <article class="panel" id="language">
+          <h2>Language-aware by design.</h2>
+          <p>
+            Cooking videos often mix languages, subtitles, slang, brand names, and casual quantities.
+            This demo highlights how an AI workflow can preserve original phrasing while producing an
+            English-friendly structured card for studying and cooking.
+          </p>
+          <div class="language-samples">
+            <div class="language-row">
+              <b>繁體中文</b>
+              <span>「少許鹽、白胡椒，最後淋上香油」 becomes season lightly, finish with sesame oil.</span>
+            </div>
+            <div class="language-row">
+              <b>日本語</b>
+              <span>「弱火でじっくり、だしを入れて煮る」 becomes simmer gently over low heat with dashi.</span>
+            </div>
+            <div class="language-row">
+              <b>English</b>
+              <span>“A splash,” “until glossy,” and “about a handful” become explicit notes with confidence flags.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel" id="confidence">
+          <h2>Confidence and gaps stay visible.</h2>
+          <p>
+            Instead of pretending every video is perfectly structured, the interface surfaces uncertain
+            quantities, missing cook times, and translation assumptions so a human can review the card.
+          </p>
+          <p class="section-title">Current recipe gaps</p>
+          <ul class="gap-list" id="gapList"></ul>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>AI Recipe Lab is a static demo for Galvin Lam's college portfolio.</span>
+      <span>Built without external dependencies or a build step.</span>
+    </footer>
+  </div>
+
+  <script>
+    const workflowSteps = [
+      {
+        title: "Capture video / playlist",
+        short: "Save URL, title, duration, playlist order.",
+        detail: "The tool starts from a YouTube video or playlist link and records source metadata without claiming ownership of the media.",
+        icon: "play"
+      },
+      {
+        title: "Extract transcript",
+        short: "Collect captions, speech text, and chapter hints.",
+        detail: "Transcript text can be noisy, incomplete, or split across captions. The preview treats it as source material, not final truth.",
+        icon: "text"
+      },
+      {
+        title: "Detect language",
+        short: "Identify English, Traditional Chinese, Japanese, or mixed language.",
+        detail: "Language detection guides translation, unit parsing, and preservation of useful original cooking phrases.",
+        icon: "globe"
+      },
+      {
+        title: "Identify ingredients",
+        short: "Find ingredient names, brands, and optional swaps.",
+        detail: "Ingredient detection separates food items from tools, garnish, and casual commentary.",
+        icon: "leaf"
+      },
+      {
+        title: "Normalize quantities",
+        short: "Convert loose phrases into reviewable amounts.",
+        detail: "Amounts like a splash, a knob, or 適量 are normalized when possible and flagged when they need human judgment.",
+        icon: "scale"
+      },
+      {
+        title: "Build steps / timing",
+        short: "Turn narration into ordered method steps.",
+        detail: "The method timeline links actions to approximate video moments so a reviewer can jump back to the source.",
+        icon: "clock"
+      },
+      {
+        title: "Create recipe card",
+        short: "Generate a clean, printable cooking card.",
+        detail: "The card combines title, summary, ingredients, steps, language notes, confidence, and gaps in one useful output.",
+        icon: "card"
+      },
+      {
+        title: "Save to knowledge base",
+        short: "Store searchable recipe memory for later.",
+        detail: "A future version could save cards by cuisine, technique, source creator, ingredient, and language.",
+        icon: "database"
+      }
+    ];
+
+    const recipes = [
+      {
+        id: "miso",
+        label: "Miso Butter Udon",
+        sourceType: "Video",
+        url: "https://youtube.com/watch?v=demo-miso-butter-udon",
+        language: "Japanese + English",
+        languageCode: "日本語",
+        ingredientCount: 8,
+        duration: "12 min",
+        confidence: 88,
+        title: "Miso Butter Udon",
+        summary: "A weeknight noodle card built from a Japanese cooking video with English subtitle fragments and casual sauce measurements.",
+        ingredients: [
+          ["Frozen udon", "2 bricks"],
+          ["White miso", "1.5 tbsp"],
+          ["Unsalted butter", "18 g"],
+          ["Dashi", "120 ml"],
+          ["Soy sauce", "1 tsp"],
+          ["Corn", "1/3 cup"],
+          ["Scallion", "1 stalk"],
+          ["Black pepper", "to finish"]
+        ],
+        steps: [
+          ["00:18", "Loosen noodles", "Warm frozen udon until the strands separate; do not boil aggressively."],
+          ["01:04", "Build sauce", "Whisk miso into dashi, then add soy sauce and butter over low heat."],
+          ["02:31", "Coat and finish", "Toss noodles until glossy, fold in corn, and finish with scallion and pepper."]
+        ],
+        gaps: [
+          ["Miso type", "Video says miso casually; white miso inferred from color and subtitle context."],
+          ["Heat level", "Narration says weak flame; card uses low heat for English readers."]
+        ]
+      },
+      {
+        id: "congee",
+        label: "Ginger Chicken Congee",
+        sourceType: "Playlist",
+        url: "https://youtube.com/playlist?list=demo-home-congee-series",
+        language: "Traditional Chinese",
+        languageCode: "繁體中文",
+        ingredientCount: 10,
+        duration: "45 min",
+        confidence: 82,
+        title: "薑絲雞粥 / Ginger Chicken Congee",
+        summary: "A Cantonese-style congee card that preserves Traditional Chinese phrasing while normalizing rice, stock, and seasoning ratios.",
+        ingredients: [
+          ["Jasmine rice", "3/4 cup"],
+          ["Chicken thigh", "280 g"],
+          ["Ginger", "20 g, julienned"],
+          ["Chicken stock", "6 cups"],
+          ["Salt", "to taste"],
+          ["White pepper", "1/4 tsp"],
+          ["Sesame oil", "1 tsp"],
+          ["Scallion", "2 stalks"]
+        ],
+        steps: [
+          ["00:42", "Rinse rice", "Rinse until water is mostly clear, then simmer with stock."],
+          ["06:15", "Shred chicken", "Poach chicken in the pot, remove, shred, and return to the congee."],
+          ["18:50", "Season gently", "Add ginger, salt, white pepper, and finish with sesame oil."]
+        ],
+        gaps: [
+          ["Salt amount", "Transcript says 少許鹽, so the card keeps it as to taste."],
+          ["Texture target", "Playlist clips show thick congee, but exact water loss varies by pot."]
+        ]
+      },
+      {
+        id: "tacos",
+        label: "Sheet Pan Fish Tacos",
+        sourceType: "Video",
+        url: "https://youtube.com/watch?v=demo-sheet-pan-fish-tacos",
+        language: "English",
+        languageCode: "EN",
+        ingredientCount: 11,
+        duration: "28 min",
+        confidence: 91,
+        title: "Sheet Pan Fish Tacos",
+        summary: "A structured recipe card from an energetic English video where ingredients are mentioned out of order and timing is shown visually.",
+        ingredients: [
+          ["White fish", "450 g"],
+          ["Corn tortillas", "8"],
+          ["Cabbage", "2 cups shredded"],
+          ["Lime", "2"],
+          ["Greek yogurt", "1/2 cup"],
+          ["Chipotle", "1 tbsp"],
+          ["Cumin", "1 tsp"],
+          ["Paprika", "1 tsp"]
+        ],
+        steps: [
+          ["00:25", "Season fish", "Pat fish dry, season with cumin, paprika, salt, and oil."],
+          ["02:10", "Roast", "Bake on a lined sheet pan until flakes easily."],
+          ["04:05", "Assemble", "Mix yogurt sauce, warm tortillas, and top with cabbage and lime."]
+        ],
+        gaps: [
+          ["Oven temperature", "Spoken once quickly; visual title card suggests 425 F."],
+          ["Fish thickness", "Cook time depends on fillet size, so the card includes doneness guidance."]
+        ]
+      }
+    ];
+
+    let selectedRecipe = recipes[0];
+    let selectedStep = 0;
+
+    const iconPaths = {
+      play: '<polygon points="9 7 19 12 9 17 9 7"></polygon><rect x="3" y="5" width="18" height="14" rx="3"></rect>',
+      text: '<path d="M5 7h14"></path><path d="M5 12h14"></path><path d="M5 17h9"></path>',
+      globe: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path>',
+      leaf: '<path d="M5 19c8 0 14-6 14-14C11 5 5 11 5 19z"></path><path d="M5 19 15 9"></path>',
+      scale: '<path d="M12 3v18"></path><path d="M5 7h14"></path><path d="M7 7 4 14h6L7 7z"></path><path d="M17 7l-3 7h6l-3-7z"></path>',
+      clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
+      card: '<rect x="4" y="5" width="16" height="14" rx="3"></rect><path d="M7 9h10"></path><path d="M7 13h6"></path>',
+      database: '<ellipse cx="12" cy="6" rx="7" ry="3"></ellipse><path d="M5 6v8c0 1.7 3.1 3 7 3s7-1.3 7-3V6"></path><path d="M5 10c0 1.7 3.1 3 7 3s7-1.3 7-3"></path>'
+    };
+
+    function icon(name) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[name]}</svg>`;
+    }
+
+    function renderExamples() {
+      const switcher = document.querySelector(".example-switcher");
+      switcher.innerHTML = recipes.map((recipe, index) => `
+        <button class="example-button ${recipe.id === selectedRecipe.id ? "active" : ""}" data-recipe="${recipe.id}" type="button">
+          <span class="thumb">${index + 1}</span>
+          <span>
+            <span class="example-title">${recipe.label}</span>
+            <span class="example-meta">${recipe.sourceType} · ${recipe.duration}</span>
+          </span>
+          <span class="language-pill">${recipe.languageCode}</span>
+        </button>
+      `).join("");
+
+      switcher.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedRecipe = recipes.find((recipe) => recipe.id === button.dataset.recipe);
+          selectedStep = 0;
+          render();
+        });
+      });
+    }
+
+    function renderWorkflow() {
+      const mini = document.querySelector(".workflow-mini");
+      const rail = document.querySelector(".workflow-rail");
+
+      const buttonHtml = workflowSteps.map((step, index) => `
+        <button class="mini-step ${index === selectedStep ? "active" : ""}" data-step="${index}" type="button">
+          <span class="mini-step-icon">${index + 1}</span>
+          <span>${step.title}</span>
+        </button>
+      `).join("");
+
+      const railHtml = workflowSteps.map((step, index) => `
+        <button class="workflow-step ${index === selectedStep ? "active" : ""}" data-step="${index}" type="button">
+          ${icon(step.icon)}
+          <strong>${step.title}</strong>
+          <span>${step.short}</span>
+        </button>
+      `).join("");
+
+      mini.innerHTML = buttonHtml;
+      rail.innerHTML = railHtml;
+
+      document.querySelectorAll("[data-step]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedStep = Number(button.dataset.step);
+          render();
+        });
+      });
+    }
+
+    function renderRecipe() {
+      document.getElementById("sourceUrl").textContent = selectedRecipe.url;
+      document.getElementById("languageStat").textContent = selectedRecipe.language;
+      document.getElementById("ingredientStat").textContent = selectedRecipe.ingredientCount;
+      document.getElementById("timeStat").textContent = selectedRecipe.duration;
+      document.getElementById("recipeTitle").textContent = selectedRecipe.title;
+      document.getElementById("recipeSummary").textContent = selectedRecipe.summary;
+      document.getElementById("confidenceScore").textContent = `${selectedRecipe.confidence}%`;
+      document.getElementById("scoreRing").style.setProperty("--score", `${selectedRecipe.confidence}%`);
+      document.getElementById("activeStepLabel").textContent = `Preview: ${workflowSteps[selectedStep].title}`;
+      document.getElementById("workflowDetail").textContent = workflowSteps[selectedStep].detail;
+
+      document.getElementById("ingredientList").innerHTML = selectedRecipe.ingredients.map(([name, amount]) => `
+        <li><strong>${name}</strong><span>${amount}</span></li>
+      `).join("");
+
+      document.getElementById("timeline").innerHTML = selectedRecipe.steps.map(([time, title, detail]) => `
+        <div class="timeline-step">
+          <span class="time-code">${time}</span>
+          <span><b>${title}</b><span>${detail}</span></span>
+        </div>
+      `).join("");
+
+      document.getElementById("gapList").innerHTML = selectedRecipe.gaps.map(([title, detail]) => `
+        <li><span><b>${title}</b><br>${detail}</span></li>
+      `).join("");
+    }
+
+    function render() {
+      renderExamples();
+      renderWorkflow();
+      renderRecipe();
+    }
+
+    render();
+  </script>
+</body>
+</html>
