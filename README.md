@@ -12,6 +12,8 @@ A useful recipe might be buried inside a twenty-minute YouTube video, split acro
 
 This project explores how AI can turn that messy media into something structured. The idea is to capture a video or playlist, read the transcript-like text, detect the language, pull out ingredients, normalize rough quantities, build a cooking timeline, and leave uncertainty visible for human review.
 
+The useful endpoint is not just a recipe card on screen. The useful endpoint is a structured note that can be saved into LLM Wiki, searched later, compared with other recipes, and queried in plain language.
+
 ![AI Recipe Lab screenshot](docs/assets/ai-recipe-lab-main.png)
 
 ## Workflow
@@ -43,7 +45,7 @@ Recipe card
 Confidence notes + review gaps
         |
         v
-Save to knowledge base
+Save to LLM Wiki
 ```
 
 ## How AI Fits In
@@ -51,6 +53,35 @@ Save to knowledge base
 AI is useful here because the input is not clean data. It has narration, incomplete subtitles, visual context, multilingual phrasing, and vague cooking language. The workflow uses AI as a translator between messy source material and a recipe card that a person can actually use.
 
 The important part is not pretending the extraction is perfect. The interface keeps confidence and review gaps visible, so a human can quickly check uncertain quantities, missing temperatures, or steps that were shown on camera but not spoken clearly.
+
+## LLM Wiki Tie-In
+
+Without the ingest workflow, this project is mainly a prototype of the user experience and output format. It becomes useful when the generated card is written back into LLM Wiki as markdown.
+
+Example note shape:
+
+```markdown
+---
+source: https://youtube.com/watch?v=...
+language: Japanese + English
+tags: [recipes, cooking-video, udon, miso, weeknight]
+confidence: 88
+review_gaps:
+  - Miso type inferred from video color and subtitles
+  - Heat level translated from "weak flame"
+---
+
+# Miso Butter Udon
+
+Summary, ingredients, cooking timeline, source notes, and uncertainty checks.
+```
+
+Once saved this way, LLM Wiki can answer questions like:
+
+- "Which recipes use miso and take under 20 minutes?"
+- "Show me Traditional Chinese congee recipes with ginger."
+- "Which recipe cards still have low-confidence quantities?"
+- "Compare the udon recipes I saved from Japanese cooking videos."
 
 ## AI Prompt
 
@@ -62,6 +93,7 @@ Show how AI turns YouTube cooking videos into recipe cards.
 Make the first screen screenshotable with a workflow graphic and recipe preview.
 Include multilingual examples: English, Traditional Chinese, and Japanese.
 Add clickable sample recipes, ingredients, cooking steps, and confidence gaps.
+Show how the output can be saved as a markdown note in LLM Wiki.
 Write a README that explains the problem, the AI workflow, and demo limits.
 ```
 
@@ -87,7 +119,7 @@ Then open `http://localhost:8000`.
 - Normalizing quantities such as "a splash," `少許`, and low-confidence inferred amounts.
 - Building a timed cooking method timeline from video moments.
 - Creating a clean recipe card with ingredients, summary, method, confidence, and review gaps.
-- Saving the structured output to a future knowledge base concept.
+- Saving the structured output as a future LLM Wiki markdown note.
 
 ## Demo Data
 
@@ -101,7 +133,7 @@ Included sample cards:
 
 ## Why It Exists
 
-The goal is to make cooking videos easier to reuse. Instead of leaving good recipes trapped inside video timelines, AI Recipe Lab shows a path from unstructured media to organized kitchen notes: ingredients, method, timing, language context, and places where the AI needs a person to double-check.
+The goal is to make cooking videos easier to reuse. Instead of leaving good recipes trapped inside video timelines, AI Recipe Lab shows a path from unstructured media to organized LLM Wiki notes: ingredients, method, timing, language context, and places where the AI needs a person to double-check.
 
 ## Files
 

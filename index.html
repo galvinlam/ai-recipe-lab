@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Recipe Lab</title>
-  <meta name="description" content="Static portfolio demo showing how AI can turn messy cooking videos and playlists into structured recipe cards.">
+  <meta name="description" content="Static interface showing how AI can turn messy cooking videos and playlists into structured recipe cards for LLM Wiki.">
   <style>
     :root {
       --bg: #fff8ed;
@@ -645,7 +645,7 @@
 
     .detail-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
       margin-top: 30px;
     }
@@ -697,6 +697,24 @@
 
     .gap-list b {
       color: var(--ink);
+    }
+
+    .wiki-note {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      color: #fff8ed;
+      background: #24160e;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .wiki-note span {
+      color: #e8cbb1;
     }
 
     .footer {
@@ -820,6 +838,7 @@
       <nav aria-label="Page navigation">
         <a href="#demo">Demo</a>
         <a href="#workflow">Workflow</a>
+        <a href="#wiki">LLM Wiki</a>
         <a href="#language">Languages</a>
         <a href="#confidence">Confidence</a>
       </nav>
@@ -830,9 +849,9 @@
         <div class="hero-copy">
           <h1>Turn cooking videos into recipe cards.</h1>
           <p>
-            A static portfolio demo of an AI-assisted workflow: capture a YouTube video or playlist,
+            A prototype interface for an AI-assisted workflow: capture a YouTube video or playlist,
             clean up transcript noise, detect language, normalize ingredients, build timed steps, and save
-            the result as a structured kitchen knowledge card.
+            the result as a structured LLM Wiki note.
           </p>
           <div class="hero-actions">
             <a class="button" href="#workflow">Explore the workflow</a>
@@ -844,8 +863,8 @@
               <span>Sample outputs are hand-authored to show the interface concept. No real YouTube extraction runs here.</span>
             </div>
             <div class="note-chip">
-              <strong>Portfolio ready</strong>
-              <span>Built for screenshots: workflow, input, generated card, timeline, and gaps are visible at once.</span>
+              <strong>LLM Wiki ready</strong>
+              <span>The useful output is markdown with source, ingredients, method, tags, confidence, and review gaps.</span>
             </div>
             <div class="note-chip">
               <strong>Multilingual</strong>
@@ -918,7 +937,7 @@
         <div class="workflow-header">
           <h2>Messy media, clean kitchen memory.</h2>
           <p id="workflowDetail">
-            The rail below shows each stage from playlist capture to a saved knowledge-base card.
+            The rail below shows each stage from playlist capture to a saved LLM Wiki note.
             Click any step to update the active preview state.
           </p>
         </div>
@@ -958,11 +977,22 @@
           <p class="section-title">Current recipe gaps</p>
           <ul class="gap-list" id="gapList"></ul>
         </article>
+
+        <article class="panel" id="wiki">
+          <h2>Useful when it writes back.</h2>
+          <p>
+            The recipe card becomes more than a visual summary when it is saved into LLM Wiki.
+            Each card can become a searchable markdown note with source URL, language, tags,
+            ingredients, method steps, confidence, and review gaps.
+          </p>
+          <p class="section-title">LLM Wiki note preview</p>
+          <div class="wiki-note" id="wikiNote"></div>
+        </article>
       </section>
     </main>
 
     <footer class="footer">
-      <span>AI Recipe Lab is a static demo for Galvin Lam's college portfolio.</span>
+      <span>AI Recipe Lab is a static interface prototype for an LLM Wiki ingest workflow.</span>
       <span>Built without external dependencies or a build step.</span>
     </footer>
   </div>
@@ -1013,8 +1043,8 @@
       },
       {
         title: "Save to knowledge base",
-        short: "Store searchable recipe memory for later.",
-        detail: "A future version could save cards by cuisine, technique, source creator, ingredient, and language.",
+        short: "Write a searchable LLM Wiki note.",
+        detail: "The useful handoff is a markdown note with source URL, language, ingredients, method, tags, confidence, and review gaps.",
         icon: "database"
       }
     ];
@@ -1214,6 +1244,22 @@
       document.getElementById("gapList").innerHTML = selectedRecipe.gaps.map(([title, detail]) => `
         <li><span><b>${title}</b><br>${detail}</span></li>
       `).join("");
+
+      const ingredientTags = selectedRecipe.ingredients.slice(0, 4).map(([name]) =>
+        name.toLowerCase().replaceAll(" ", "-")
+      );
+
+      document.getElementById("wikiNote").innerHTML = `
+        <div>---</div>
+        <div>source: <span>${selectedRecipe.url}</span></div>
+        <div>language: <span>${selectedRecipe.language}</span></div>
+        <div>tags: <span>recipes, cooking-video, ${ingredientTags.join(", ")}</span></div>
+        <div>confidence: <span>${selectedRecipe.confidence}%</span></div>
+        <div>---</div>
+        <div># ${selectedRecipe.title}</div>
+        <div><span>${selectedRecipe.summary}</span></div>
+        <div>review_gaps: <span>${selectedRecipe.gaps.length} items need human check</span></div>
+      `;
     }
 
     function render() {
