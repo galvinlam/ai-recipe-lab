@@ -16,19 +16,34 @@ This project explores how AI can turn that messy media into something structured
 
 ## Workflow
 
-```mermaid
-flowchart LR
-  A["YouTube video or playlist"] --> B["Transcript and metadata capture"]
-  B --> C["Language detection"]
-  C --> D["Ingredient extraction"]
-  D --> E["Quantity normalization"]
-  E --> F["Cooking step timeline"]
-  F --> G["Recipe card"]
-  G --> H["Review gaps and confidence notes"]
-  H --> I["Save to knowledge base"]
-
-  C -. "English, Traditional Chinese, Japanese, mixed subtitles" .-> D
-  H -. "AI flags uncertain amounts, missing temperatures, and visual-only steps" .-> G
+```text
+YouTube video / playlist
+        |
+        v
+Transcript + metadata capture
+        |
+        v
+Language detection
+  EN / 繁體中文 / 日本語 / mixed subtitles
+        |
+        v
+Ingredient extraction
+        |
+        v
+Quantity normalization
+  "a splash" / 少許 / visual-only amounts
+        |
+        v
+Cooking method timeline
+        |
+        v
+Recipe card
+        |
+        v
+Confidence notes + review gaps
+        |
+        v
+Save to knowledge base
 ```
 
 ## How AI Fits In
@@ -36,6 +51,19 @@ flowchart LR
 AI is useful here because the input is not clean data. It has narration, incomplete subtitles, visual context, multilingual phrasing, and vague cooking language. The workflow uses AI as a translator between messy source material and a recipe card that a person can actually use.
 
 The important part is not pretending the extraction is perfect. The interface keeps confidence and review gaps visible, so a human can quickly check uncertain quantities, missing temperatures, or steps that were shown on camera but not spoken clearly.
+
+## AI Prompt
+
+Short Codex prompt sequence used to shape the project:
+
+```text
+Create a static GitHub Pages app called AI Recipe Lab.
+Show how AI turns YouTube cooking videos into recipe cards.
+Make the first screen screenshotable with a workflow graphic and recipe preview.
+Include multilingual examples: English, Traditional Chinese, and Japanese.
+Add clickable sample recipes, ingredients, cooking steps, and confidence gaps.
+Write a README that explains the problem, the AI workflow, and demo limits.
+```
 
 ## Usage
 
