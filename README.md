@@ -21,7 +21,7 @@ Open `index.html` directly in a browser, or serve the folder with any simple sta
 Example:
 
 ```powershell
-cd "C:\Users\melvi\Projects\ai-recipe-lab"
+cd "~/projects/ai-recipe-lab"
 python -m http.server 8000
 ```
 
