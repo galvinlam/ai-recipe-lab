@@ -717,6 +717,26 @@
       color: #e8cbb1;
     }
 
+    .ingest-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .ingest-actions .button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .ingest-status {
+      min-height: 1.4em;
+      margin: 10px 0 0;
+      color: var(--leaf);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
     .footer {
       display: flex;
       justify-content: space-between;
@@ -851,11 +871,11 @@
           <p>
             A prototype interface for an AI-assisted workflow: capture a YouTube video or playlist,
             clean up transcript noise, detect language, normalize ingredients, build timed steps, and save
-            the result as a structured LLM Wiki note.
+            the result as an ingest-ready LLM Wiki markdown note.
           </p>
           <div class="hero-actions">
             <a class="button" href="#workflow">Explore the workflow</a>
-            <a class="button secondary" href="#language">See multilingual examples</a>
+            <a class="button secondary" href="#wiki">Export wiki note</a>
           </div>
           <div class="demo-note" aria-label="Project highlights">
             <div class="note-chip">
@@ -981,12 +1001,21 @@
         <article class="panel" id="wiki">
           <h2>Useful when it writes back.</h2>
           <p>
-            The recipe card becomes more than a visual summary when it is saved into LLM Wiki.
+            The recipe card becomes more than a visual summary when it is exported into LLM Wiki.
             Each card can become a searchable markdown note with source URL, language, tags,
             ingredients, method steps, confidence, and review gaps.
           </p>
+          <p>
+            Use the buttons below to copy the generated note or download it as a `.md` file,
+            then drop it into an LLM Wiki ingest inbox such as `raw/inbox/recipes/`.
+          </p>
           <p class="section-title">LLM Wiki note preview</p>
           <div class="wiki-note" id="wikiNote"></div>
+          <div class="ingest-actions" aria-label="LLM Wiki ingest actions">
+            <button class="button" id="copyMarkdown" type="button">Copy Markdown</button>
+            <button class="button secondary" id="downloadMarkdown" type="button">Download .md</button>
+          </div>
+          <p class="ingest-status" id="ingestStatus" aria-live="polite"></p>
         </article>
       </section>
     </main>
@@ -1042,9 +1071,9 @@
         icon: "card"
       },
       {
-        title: "Save to knowledge base",
-        short: "Write a searchable LLM Wiki note.",
-        detail: "The useful handoff is a markdown note with source URL, language, ingredients, method, tags, confidence, and review gaps.",
+        title: "Export to LLM Wiki",
+        short: "Copy or download an ingest-ready note.",
+        detail: "The useful handoff is a markdown file that can be dropped into LLM Wiki's raw inbox for indexing and later chat retrieval.",
         icon: "database"
       }
     ];
@@ -1151,6 +1180,23 @@
     let selectedRecipe = recipes[0];
     let selectedStep = 0;
 
+    function slugify(value) {
+      return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "recipe-note";
+    }
+
+    function buildMarkdown(recipe) {
+      const ingredientTags = recipe.ingredients.slice(0, 4).map(([name]) => slugify(name));
+      const tags = ["recipes", "cooking-video", recipe.sourceType.toLowerCase(), ...ingredientTags];
+      const ingredients = recipe.ingredients.map(([name, amount]) => `- ${name}: ${amount}`).join("\n");
+      const steps = recipe.steps.map(([time, title, detail]) => `- ${time} - ${title}: ${detail}`).join("\n");
+      const gaps = recipe.gaps.map(([title, detail]) => `- ${title}: ${detail}`).join("\n");
+
+      return `---\nsource: ${recipe.url}\nlanguage: ${recipe.language}\ntags: [${tags.join(", ")}]\nconfidence: ${recipe.confidence}\ningest_target: llm-wiki/raw/inbox/recipes\nreview_gaps:\n${gaps}\n---\n\n# ${recipe.title}\n\n${recipe.summary}\n\n## Ingredients\n\n${ingredients}\n\n## Method Timeline\n\n${steps}\n\n## Review Gaps\n\n${gaps}\n`;
+    }
+
     const iconPaths = {
       play: '<polygon points="9 7 19 12 9 17 9 7"></polygon><rect x="3" y="5" width="18" height="14" rx="3"></rect>',
       text: '<path d="M5 7h14"></path><path d="M5 12h14"></path><path d="M5 17h9"></path>',
@@ -1245,9 +1291,8 @@
         <li><span><b>${title}</b><br>${detail}</span></li>
       `).join("");
 
-      const ingredientTags = selectedRecipe.ingredients.slice(0, 4).map(([name]) =>
-        name.toLowerCase().replaceAll(" ", "-")
-      );
+      const markdown = buildMarkdown(selectedRecipe);
+      const ingredientTags = selectedRecipe.ingredients.slice(0, 4).map(([name]) => slugify(name));
 
       document.getElementById("wikiNote").innerHTML = `
         <div>---</div>
@@ -1255,11 +1300,16 @@
         <div>language: <span>${selectedRecipe.language}</span></div>
         <div>tags: <span>recipes, cooking-video, ${ingredientTags.join(", ")}</span></div>
         <div>confidence: <span>${selectedRecipe.confidence}%</span></div>
+        <div>ingest_target: <span>llm-wiki/raw/inbox/recipes</span></div>
         <div>---</div>
         <div># ${selectedRecipe.title}</div>
         <div><span>${selectedRecipe.summary}</span></div>
         <div>review_gaps: <span>${selectedRecipe.gaps.length} items need human check</span></div>
       `;
+
+      document.getElementById("copyMarkdown").dataset.markdown = markdown;
+      document.getElementById("downloadMarkdown").dataset.markdown = markdown;
+      document.getElementById("downloadMarkdown").dataset.filename = `${slugify(selectedRecipe.title)}.md`;
     }
 
     function render() {
@@ -1268,7 +1318,34 @@
       renderRecipe();
     }
 
+    async function copyMarkdown() {
+      const button = document.getElementById("copyMarkdown");
+      const status = document.getElementById("ingestStatus");
+      try {
+        await navigator.clipboard.writeText(button.dataset.markdown);
+        status.textContent = "Markdown copied. Drop it into LLM Wiki raw/inbox/recipes.";
+      } catch {
+        status.textContent = "Copy blocked by the browser. Use Download .md instead.";
+      }
+    }
+
+    function downloadMarkdown() {
+      const button = document.getElementById("downloadMarkdown");
+      const blob = new Blob([button.dataset.markdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = button.dataset.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      document.getElementById("ingestStatus").textContent = `${button.dataset.filename} downloaded for LLM Wiki ingest.`;
+    }
+
     render();
+    document.getElementById("copyMarkdown").addEventListener("click", copyMarkdown);
+    document.getElementById("downloadMarkdown").addEventListener("click", downloadMarkdown);
   </script>
 </body>
 </html>

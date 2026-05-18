@@ -12,7 +12,7 @@ A useful recipe might be buried inside a twenty-minute YouTube video, split acro
 
 This project explores how AI can turn that messy media into something structured. The idea is to capture a video or playlist, read the transcript-like text, detect the language, pull out ingredients, normalize rough quantities, build a cooking timeline, and leave uncertainty visible for human review.
 
-The useful endpoint is not just a recipe card on screen. The useful endpoint is a structured note that can be saved into LLM Wiki, searched later, compared with other recipes, and queried in plain language.
+The useful endpoint is not just a recipe card on screen. The useful endpoint is a structured markdown note that can be copied or downloaded, dropped into LLM Wiki's ingest inbox, searched later, compared with other recipes, and queried in plain language.
 
 ![AI Recipe Lab screenshot](docs/assets/ai-recipe-lab-main.png)
 
@@ -45,7 +45,13 @@ Recipe card
 Confidence notes + review gaps
         |
         v
-Save to LLM Wiki
+Copy / download markdown
+        |
+        v
+Drop into LLM Wiki raw inbox
+        |
+        v
+Indexed LLM Wiki note
 ```
 
 ## How AI Fits In
@@ -56,7 +62,14 @@ The important part is not pretending the extraction is perfect. The interface ke
 
 ## LLM Wiki Tie-In
 
-Without the ingest workflow, this project is mainly a prototype of the user experience and output format. It becomes useful when the generated card is written back into LLM Wiki as markdown.
+Without the ingest workflow, this project is mainly a prototype of the user experience and output format. It becomes useful when the generated card is exported into LLM Wiki as markdown.
+
+The page now includes two static handoff actions:
+
+- `Copy Markdown`: copies the selected recipe note.
+- `Download .md`: downloads an ingest-ready markdown file.
+
+That file can be dropped into an LLM Wiki raw inbox, for example `raw/inbox/recipes/`, where the normal ingest process can pick it up.
 
 Example note shape:
 
@@ -66,6 +79,7 @@ source: https://youtube.com/watch?v=...
 language: Japanese + English
 tags: [recipes, cooking-video, udon, miso, weeknight]
 confidence: 88
+ingest_target: llm-wiki/raw/inbox/recipes
 review_gaps:
   - Miso type inferred from video color and subtitles
   - Heat level translated from "weak flame"
@@ -93,7 +107,7 @@ Show how AI turns YouTube cooking videos into recipe cards.
 Make the first screen screenshotable with a workflow graphic and recipe preview.
 Include multilingual examples: English, Traditional Chinese, and Japanese.
 Add clickable sample recipes, ingredients, cooking steps, and confidence gaps.
-Show how the output can be saved as a markdown note in LLM Wiki.
+Add copy/download actions that export the selected recipe as markdown for LLM Wiki ingest.
 Write a README that explains the problem, the AI workflow, and demo limits.
 ```
 
@@ -119,7 +133,7 @@ Then open `http://localhost:8000`.
 - Normalizing quantities such as "a splash," `少許`, and low-confidence inferred amounts.
 - Building a timed cooking method timeline from video moments.
 - Creating a clean recipe card with ingredients, summary, method, confidence, and review gaps.
-- Saving the structured output as a future LLM Wiki markdown note.
+- Copying or downloading the structured output as an LLM Wiki markdown note.
 
 ## Demo Data
 
