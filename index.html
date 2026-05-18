@@ -447,6 +447,29 @@
       margin-bottom: 14px;
     }
 
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 520px;
+      border: 1px dashed var(--line);
+      border-radius: 26px;
+      padding: 34px;
+      text-align: center;
+      background: rgba(255, 253, 248, 0.72);
+    }
+
+    .empty-state h2 {
+      margin-bottom: 12px;
+      font-size: clamp(2.2rem, 5vw, 4.1rem);
+    }
+
+    .empty-state p {
+      max-width: 25rem;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
     .stat {
       border-radius: 17px;
       padding: 12px;
@@ -932,7 +955,7 @@
               <div class="input-card">
                 <div class="control-label">Paste video or playlist URL</div>
                 <form class="url-form" id="sourceForm">
-                  <input id="sourceInput" type="url" autocomplete="off" spellcheck="false" aria-label="YouTube video or playlist URL">
+                  <input id="sourceInput" type="url" autocomplete="off" spellcheck="false" placeholder="https://youtube.com/watch?v=..." aria-label="YouTube video or playlist URL">
                   <button class="button" type="submit">Process Link</button>
                   <div class="process-status" id="processStatus" aria-live="polite"></div>
                 </form>
@@ -945,7 +968,13 @@
             </aside>
 
             <section class="preview-panel" aria-live="polite">
-              <div class="analysis-strip">
+              <div class="empty-state" id="emptyState">
+                <div>
+                  <h2>Paste a link to start.</h2>
+                  <p>Use a sample link or paste a YouTube cooking URL. Processing generates the recipe card and LLM Wiki markdown output.</p>
+                </div>
+              </div>
+              <div class="analysis-strip" id="analysisStrip">
                 <div class="stat">
                   <b id="languageStat"></b>
                   <span>Detected language</span>
@@ -960,7 +989,7 @@
                 </div>
               </div>
 
-              <article class="recipe-card">
+              <article class="recipe-card" id="recipeCard">
                 <header class="recipe-head">
                   <div>
                     <h2 id="recipeTitle"></h2>
@@ -1213,6 +1242,7 @@
     let selectedRecipe = recipes[0];
     let selectedStep = 0;
     let processTimer = null;
+    let resultReady = false;
 
     function slugify(value) {
       return value
@@ -1263,6 +1293,8 @@
         button.addEventListener("click", () => {
           selectedRecipe = recipes.find((recipe) => recipe.id === button.dataset.recipe);
           selectedStep = 0;
+          resultReady = false;
+          document.getElementById("sourceInput").value = selectedRecipe.url;
           document.getElementById("processStatus").textContent = "Sample link loaded. Press Process Link to simulate extraction.";
           render();
         });
@@ -1300,7 +1332,28 @@
     }
 
     function renderRecipe() {
-      document.getElementById("sourceInput").value = selectedRecipe.url;
+      const emptyState = document.getElementById("emptyState");
+      const analysisStrip = document.getElementById("analysisStrip");
+      const recipeCard = document.getElementById("recipeCard");
+      const copyButton = document.getElementById("copyMarkdown");
+      const downloadButton = document.getElementById("downloadMarkdown");
+
+      emptyState.style.display = resultReady ? "none" : "grid";
+      analysisStrip.style.display = resultReady ? "grid" : "none";
+      recipeCard.style.display = resultReady ? "block" : "none";
+      copyButton.disabled = !resultReady;
+      downloadButton.disabled = !resultReady;
+
+      if (!resultReady) {
+        document.getElementById("activeStepLabel").textContent = "Waiting for YouTube source";
+        document.getElementById("workflowDetail").textContent = "Paste a YouTube cooking video or playlist link, then process it to generate a recipe card and wiki note.";
+        document.getElementById("wikiNote").innerHTML = "<div>Generated markdown appears after processing a link.</div>";
+        copyButton.dataset.markdown = "";
+        downloadButton.dataset.markdown = "";
+        downloadButton.dataset.filename = "recipe-note.md";
+        return;
+      }
+
       document.getElementById("languageStat").textContent = selectedRecipe.language;
       document.getElementById("ingredientStat").textContent = selectedRecipe.ingredientCount;
       document.getElementById("timeStat").textContent = selectedRecipe.duration;
@@ -1372,12 +1425,14 @@
       selectedStep = 0;
       selectedRecipe = selectRecipeFromUrl(url);
       selectedRecipe = { ...selectedRecipe, url };
+      resultReady = false;
       status.textContent = "Processing link: transcript, language, ingredients, timing...";
       render();
 
       clearTimeout(processTimer);
       processTimer = setTimeout(() => {
         selectedStep = 7;
+        resultReady = true;
         status.textContent = "Recipe card generated. Export the markdown note for LLM Wiki ingest.";
         render();
       }, 850);
@@ -1392,6 +1447,10 @@
     async function copyMarkdown() {
       const button = document.getElementById("copyMarkdown");
       const status = document.getElementById("ingestStatus");
+      if (!button.dataset.markdown) {
+        status.textContent = "Process a link before copying markdown.";
+        return;
+      }
       try {
         await navigator.clipboard.writeText(button.dataset.markdown);
         status.textContent = "Markdown copied. Drop it into LLM Wiki raw/inbox/recipes.";
@@ -1402,6 +1461,10 @@
 
     function downloadMarkdown() {
       const button = document.getElementById("downloadMarkdown");
+      if (!button.dataset.markdown) {
+        document.getElementById("ingestStatus").textContent = "Process a link before downloading markdown.";
+        return;
+      }
       const blob = new Blob([button.dataset.markdown], { type: "text/markdown;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
