@@ -293,6 +293,35 @@
       line-height: 1.45;
     }
 
+    .url-form {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .url-form input {
+      width: 100%;
+      border: 1px solid rgba(255, 248, 237, 0.16);
+      border-radius: 16px;
+      padding: 12px 13px;
+      color: #fff8ed;
+      background: rgba(255, 248, 237, 0.08);
+      outline: none;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 0.82rem;
+    }
+
+    .url-form input:focus {
+      border-color: #f8d7b5;
+    }
+
+    .process-status {
+      min-height: 1.4em;
+      color: #f8d7b5;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
     .example-switcher {
       display: grid;
       gap: 10px;
@@ -869,9 +898,8 @@
         <div class="hero-copy">
           <h1>Turn cooking videos into recipe cards.</h1>
           <p>
-            A prototype interface for an AI-assisted workflow: capture a YouTube video or playlist,
-            clean up transcript noise, detect language, normalize ingredients, build timed steps, and save
-            the result as an ingest-ready LLM Wiki markdown note.
+            Paste a YouTube cooking video or playlist, process the source, review the recipe card,
+            then export an ingest-ready LLM Wiki markdown note.
           </p>
           <div class="hero-actions">
             <a class="button" href="#workflow">Explore the workflow</a>
@@ -879,8 +907,8 @@
           </div>
           <div class="demo-note" aria-label="Project highlights">
             <div class="note-chip">
-              <strong>Static demo</strong>
-              <span>Sample outputs are hand-authored to show the interface concept. No real YouTube extraction runs here.</span>
+              <strong>URL first</strong>
+              <span>The main flow starts with a YouTube link, then simulates transcript extraction and recipe synthesis.</span>
             </div>
             <div class="note-chip">
               <strong>LLM Wiki ready</strong>
@@ -900,11 +928,16 @@
           </div>
           <div class="workspace">
             <aside class="input-panel">
-              <div class="control-label">Input examples</div>
+              <div class="control-label">YouTube source</div>
               <div class="input-card">
-                <div class="control-label">Source URL</div>
-                <div class="input-url" id="sourceUrl"></div>
+                <div class="control-label">Paste video or playlist URL</div>
+                <form class="url-form" id="sourceForm">
+                  <input id="sourceInput" type="url" autocomplete="off" spellcheck="false" aria-label="YouTube video or playlist URL">
+                  <button class="button" type="submit">Process Link</button>
+                  <div class="process-status" id="processStatus" aria-live="polite"></div>
+                </form>
               </div>
+              <div class="control-label">Sample links</div>
               <div class="example-switcher" aria-label="Recipe examples"></div>
 
               <div class="control-label">Click a workflow step</div>
@@ -1179,6 +1212,7 @@
 
     let selectedRecipe = recipes[0];
     let selectedStep = 0;
+    let processTimer = null;
 
     function slugify(value) {
       return value
@@ -1229,6 +1263,7 @@
         button.addEventListener("click", () => {
           selectedRecipe = recipes.find((recipe) => recipe.id === button.dataset.recipe);
           selectedStep = 0;
+          document.getElementById("processStatus").textContent = "Sample link loaded. Press Process Link to simulate extraction.";
           render();
         });
       });
@@ -1265,7 +1300,7 @@
     }
 
     function renderRecipe() {
-      document.getElementById("sourceUrl").textContent = selectedRecipe.url;
+      document.getElementById("sourceInput").value = selectedRecipe.url;
       document.getElementById("languageStat").textContent = selectedRecipe.language;
       document.getElementById("ingredientStat").textContent = selectedRecipe.ingredientCount;
       document.getElementById("timeStat").textContent = selectedRecipe.duration;
@@ -1312,6 +1347,42 @@
       document.getElementById("downloadMarkdown").dataset.filename = `${slugify(selectedRecipe.title)}.md`;
     }
 
+    function selectRecipeFromUrl(url) {
+      const normalized = url.toLowerCase();
+      if (normalized.includes("playlist") || normalized.includes("congee") || normalized.includes("粥")) {
+        return recipes.find((recipe) => recipe.id === "congee");
+      }
+      if (normalized.includes("taco") || normalized.includes("fish")) {
+        return recipes.find((recipe) => recipe.id === "tacos");
+      }
+      return recipes.find((recipe) => recipe.id === "miso");
+    }
+
+    function processSource(event) {
+      event.preventDefault();
+      const input = document.getElementById("sourceInput");
+      const status = document.getElementById("processStatus");
+      const url = input.value.trim();
+
+      if (!url) {
+        status.textContent = "Paste a YouTube video or playlist link first.";
+        return;
+      }
+
+      selectedStep = 0;
+      selectedRecipe = selectRecipeFromUrl(url);
+      selectedRecipe = { ...selectedRecipe, url };
+      status.textContent = "Processing link: transcript, language, ingredients, timing...";
+      render();
+
+      clearTimeout(processTimer);
+      processTimer = setTimeout(() => {
+        selectedStep = 7;
+        status.textContent = "Recipe card generated. Export the markdown note for LLM Wiki ingest.";
+        render();
+      }, 850);
+    }
+
     function render() {
       renderExamples();
       renderWorkflow();
@@ -1344,6 +1415,7 @@
     }
 
     render();
+    document.getElementById("sourceForm").addEventListener("submit", processSource);
     document.getElementById("copyMarkdown").addEventListener("click", copyMarkdown);
     document.getElementById("downloadMarkdown").addEventListener("click", downloadMarkdown);
   </script>
