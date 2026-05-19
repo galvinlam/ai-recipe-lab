@@ -1243,6 +1243,38 @@
     let selectedStep = 0;
     let processTimer = null;
     let resultReady = false;
+    const transcriptHosts = [
+      "https://inv.nadeko.net"
+    ];
+    const readerEndpointBase = "https://r.jina.ai/http://r.jina.ai/http://";
+
+    const ingredientLibrary = [
+      { name: "Rice", matches: ["rice", "jasmine rice", "米", "白米", "ご飯", "こめ"] },
+      { name: "Chicken", matches: ["chicken", "雞", "鸡", "鶏", "チキン", "とり肉"] },
+      { name: "Pork", matches: ["pork", "豬", "猪", "豚", "ポーク", "ぶた肉"] },
+      { name: "Beef", matches: ["beef", "牛", "牛肉", "ビーフ"] },
+      { name: "Fish", matches: ["fish", "salmon", "cod", "魚", "鱼", "鮭", "さかな"] },
+      { name: "Egg", matches: ["egg", "eggs", "蛋", "鸡蛋", "卵", "たまご"] },
+      { name: "Tofu", matches: ["tofu", "豆腐"] },
+      { name: "Noodles", matches: ["noodle", "noodles", "udon", "ramen", "麵", "面", "うどん", "ラーメン"] },
+      { name: "Garlic", matches: ["garlic", "蒜", "大蒜", "にんにく"] },
+      { name: "Ginger", matches: ["ginger", "薑", "姜", "生姜", "しょうが"] },
+      { name: "Scallion", matches: ["scallion", "green onion", "spring onion", "蔥", "葱", "ねぎ"] },
+      { name: "Onion", matches: ["onion", "洋蔥", "洋葱", "玉ねぎ"] },
+      { name: "Soy sauce", matches: ["soy sauce", "醬油", "酱油", "しょうゆ"] },
+      { name: "Miso", matches: ["miso", "味噌"] },
+      { name: "Salt", matches: ["salt", "鹽", "盐", "塩"] },
+      { name: "Sugar", matches: ["sugar", "糖", "砂糖"] },
+      { name: "Oil", matches: ["oil", "olive oil", "sesame oil", "油", "オイル", "ごま油"] },
+      { name: "Butter", matches: ["butter", "黃油", "黄油", "バター"] },
+      { name: "Lime or lemon", matches: ["lime", "lemon", "檸檬", "柠檬", "レモン"] }
+    ];
+
+    const methodHints = [
+      "add", "mix", "stir", "whisk", "slice", "chop", "dice", "marinate", "season", "simmer", "boil", "steam", "fry", "saute", "bake", "roast", "grill", "serve",
+      "加", "攪拌", "拌", "切", "醃", "炒", "煎", "煮", "蒸", "烤", "出鍋", "上碟",
+      "加え", "混ぜ", "切り", "焼き", "炒め", "煮", "蒸し", "盛り"
+    ];
 
     function slugify(value) {
       return value
@@ -1253,12 +1285,309 @@
 
     function buildMarkdown(recipe) {
       const ingredientTags = recipe.ingredients.slice(0, 4).map(([name]) => slugify(name));
-      const tags = ["recipes", "cooking-video", recipe.sourceType.toLowerCase(), ...ingredientTags];
+      const tags = ["recipes", "cooking-video", slugify(recipe.sourceType), ...ingredientTags];
       const ingredients = recipe.ingredients.map(([name, amount]) => `- ${name}: ${amount}`).join("\n");
       const steps = recipe.steps.map(([time, title, detail]) => `- ${time} - ${title}: ${detail}`).join("\n");
       const gaps = recipe.gaps.map(([title, detail]) => `- ${title}: ${detail}`).join("\n");
 
       return `---\nsource: ${recipe.url}\nlanguage: ${recipe.language}\ntags: [${tags.join(", ")}]\nconfidence: ${recipe.confidence}\ningest_target: llm-wiki/raw/inbox/recipes\nreview_gaps:\n${gaps}\n---\n\n# ${recipe.title}\n\n${recipe.summary}\n\n## Ingredients\n\n${ingredients}\n\n## Method Timeline\n\n${steps}\n\n## Review Gaps\n\n${gaps}\n`;
+    }
+
+    function extractYouTubeVideoId(value) {
+      try {
+        const url = new URL(value);
+        const host = url.hostname.replace(/^www\./, "");
+        if (host === "youtu.be") {
+          return url.pathname.split("/").filter(Boolean)[0] || "";
+        }
+        if (host.endsWith("youtube.com")) {
+          if (url.searchParams.get("v")) {
+            return url.searchParams.get("v");
+          }
+          const parts = url.pathname.split("/").filter(Boolean);
+          const marker = ["shorts", "embed", "live"].find((part) => parts.includes(part));
+          if (marker) {
+            return parts[parts.indexOf(marker) + 1] || "";
+          }
+        }
+      } catch {
+        const match = value.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+        return match ? match[1] : "";
+      }
+      const fallback = value.match(/[A-Za-z0-9_-]{11}/);
+      return fallback ? fallback[0] : "";
+    }
+
+    function decodeEntities(value) {
+      const textarea = document.createElement("textarea");
+      textarea.innerHTML = value;
+      return textarea.value;
+    }
+
+    function normalizeCaptionText(value) {
+      return decodeEntities(value)
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\{\\.*?\}/g, " ")
+        .replace(/\[[^\]]+\]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function compactTime(value) {
+      const clean = value.replace(",", ".").split(".")[0];
+      const parts = clean.split(":");
+      if (parts.length === 3 && parts[0] === "00") {
+        return `${parts[1]}:${parts[2]}`;
+      }
+      return clean;
+    }
+
+    function secondsToTime(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+      const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function dedupeSegments(segments) {
+      const seen = new Set();
+      return segments.filter((segment) => {
+        const key = segment.text.toLowerCase();
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function parseVttSegments(vtt) {
+      const blocks = vtt.replace(/\r/g, "").split(/\n{2,}/);
+      const segments = [];
+
+      blocks.forEach((block) => {
+        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+        const timeIndex = lines.findIndex((line) => line.includes("-->"));
+        if (timeIndex === -1) {
+          return;
+        }
+        const match = lines[timeIndex].match(/((?:\d{2}:)?\d{2}:\d{2}[\.,]\d{3})\s+-->/);
+        const text = normalizeCaptionText(lines.slice(timeIndex + 1).join(" "));
+        if (!match || !text) {
+          return;
+        }
+        segments.push({ time: compactTime(match[1]), text });
+      });
+
+      return dedupeSegments(segments);
+    }
+
+    function parseXmlSegments(xml) {
+      const doc = new DOMParser().parseFromString(xml, "text/xml");
+      return dedupeSegments(Array.from(doc.querySelectorAll("text")).map((node) => ({
+        time: secondsToTime(Number(node.getAttribute("start") || "0")),
+        text: normalizeCaptionText(node.textContent || "")
+      })).filter((segment) => segment.text));
+    }
+
+    function scoreCaption(caption) {
+      const label = `${caption.label || ""} ${caption.languageCode || ""}`.toLowerCase();
+      if (label.includes("english") || label.startsWith("en")) {
+        return 4;
+      }
+      if (label.includes("chinese") || label.startsWith("zh") || label.includes("japanese") || label.startsWith("ja")) {
+        return 3;
+      }
+      if (label.includes("auto")) {
+        return 2;
+      }
+      return 1;
+    }
+
+    async function fetchTranscript(videoId) {
+      const failures = [];
+      for (const host of transcriptHosts) {
+        try {
+          const listResponse = await fetch(`${host}/api/v1/captions/${videoId}`);
+          if (!listResponse.ok) {
+            failures.push(`${host} captions list returned ${listResponse.status}`);
+            continue;
+          }
+          const data = await listResponse.json();
+          const captions = Array.isArray(data.captions) ? data.captions : [];
+          const rankedCaptions = [...captions].sort((a, b) => scoreCaption(b) - scoreCaption(a));
+
+          for (const caption of rankedCaptions) {
+            const captionUrls = [];
+            if (caption.languageCode) {
+              captionUrls.push(`${host}/api/v1/captions/${videoId}?lang=${encodeURIComponent(caption.languageCode)}&local=true`);
+              captionUrls.push(`${host}/api/v1/captions/${videoId}?lang=${encodeURIComponent(caption.languageCode)}`);
+            }
+            if (caption.url) {
+              const labelUrl = new URL(caption.url, host);
+              labelUrl.searchParams.set("local", "true");
+              captionUrls.push(labelUrl.toString());
+              captionUrls.push(new URL(caption.url, host).toString());
+            }
+
+            for (const captionUrl of [...new Set(captionUrls)]) {
+              const captionResponse = await fetch(captionUrl);
+              if (!captionResponse.ok) {
+                failures.push(`${caption.label || caption.languageCode} returned ${captionResponse.status}`);
+                continue;
+              }
+              const body = await captionResponse.text();
+              const segments = body.trim().startsWith("<") ? parseXmlSegments(body) : parseVttSegments(body);
+              if (segments.length) {
+                return {
+                  host,
+                  label: caption.label || caption.languageCode || "captions",
+                  languageCode: caption.languageCode || "unknown",
+                  segments,
+                  text: segments.map((segment) => segment.text).join(" ")
+                };
+              }
+            }
+          }
+          failures.push(`${host} had caption tracks but no readable text`);
+        } catch (error) {
+          failures.push(`${host} failed: ${error.message}`);
+        }
+      }
+      throw new Error(failures.join("; ") || "No captions available");
+    }
+
+    async function fetchReaderText(url) {
+      const response = await fetch(`${readerEndpointBase}${url}`);
+      if (!response.ok) {
+        throw new Error(`Reader source returned ${response.status}`);
+      }
+      const text = await response.text();
+      const usableLines = text
+        .split(/\n+/)
+        .map((line) => normalizeCaptionText(line))
+        .filter((line) => line.length > 24)
+        .filter((line) => !/^(skip navigation|search|sign in|share|subscribe|views?|comments?)$/i.test(line));
+
+      if (usableLines.join(" ").length < 300) {
+        throw new Error("Reader source did not return enough usable text");
+      }
+
+      return {
+        host: "Jina Reader",
+        label: "YouTube page text",
+        languageCode: "unknown",
+        segments: usableLines.slice(0, 80).map((line, index) => ({
+          time: secondsToTime(index * 12),
+          text: line
+        })),
+        text: usableLines.join(" ")
+      };
+    }
+
+    function detectLanguage(transcript) {
+      const code = (transcript.languageCode || "").toLowerCase();
+      const text = transcript.text || "";
+      if (code.startsWith("zh") || /[\u4e00-\u9fff]/.test(text)) {
+        return ["Chinese / captions", "中"];
+      }
+      if (code.startsWith("ja") || /[\u3040-\u30ff]/.test(text)) {
+        return ["Japanese / captions", "日"];
+      }
+      if (code.startsWith("ko") || /[\uac00-\ud7a3]/.test(text)) {
+        return ["Korean / captions", "한"];
+      }
+      if (code.startsWith("en")) {
+        return ["English / captions", "EN"];
+      }
+      return [`${transcript.label} / captions`, code.slice(0, 3).toUpperCase() || "TXT"];
+    }
+
+    function amountNear(text, matchText) {
+      const index = text.toLowerCase().indexOf(matchText.toLowerCase());
+      if (index === -1) {
+        return "mentioned in transcript";
+      }
+      const windowText = text.slice(Math.max(0, index - 45), index + 90);
+      const amount = windowText.match(/(\d+(?:[./]\d+)?\s?(?:cups?|tbsp|tablespoons?|tsp|teaspoons?|grams?|g|kg|ml|oz|pounds?|lb|cloves?|pieces?|slices?|克|毫升|湯匙|大匙|小匙|個|个|片|杯|撮))/i);
+      return amount ? amount[1] : "mentioned in transcript";
+    }
+
+    function extractIngredients(transcriptText) {
+      const lowerText = transcriptText.toLowerCase();
+      const found = [];
+      ingredientLibrary.forEach((ingredient) => {
+        const match = ingredient.matches.find((candidate) => lowerText.includes(candidate.toLowerCase()));
+        if (match) {
+          found.push([ingredient.name, amountNear(transcriptText, match)]);
+        }
+      });
+
+      if (found.length) {
+        return found.slice(0, 10);
+      }
+
+      return [
+        ["Main ingredient", "mentioned visually or in transcript"],
+        ["Seasoning", "needs review"],
+        ["Sauce or liquid", "needs review"],
+        ["Aromatics", "needs review"],
+        ["Cooking fat", "needs review"]
+      ];
+    }
+
+    function sentenceCase(value) {
+      const clean = value.replace(/\s+/g, " ").trim();
+      return clean.charAt(0).toUpperCase() + clean.slice(1);
+    }
+
+    function extractMethodSteps(segments) {
+      const methodSegments = segments.filter((segment) => {
+        const lower = segment.text.toLowerCase();
+        return methodHints.some((hint) => lower.includes(hint.toLowerCase()));
+      });
+      const source = methodSegments.length >= 3 ? methodSegments : segments;
+      const picked = source.filter((segment) => segment.text.length > 18).slice(0, 5);
+
+      if (!picked.length) {
+        return [
+          ["00:00", "Review source", "Caption text was too sparse to infer a cooking method."],
+          ["--:--", "Fill method", "Open the video and confirm the preparation, cooking, and serving steps."]
+        ];
+      }
+
+      return picked.map((segment, index) => {
+        const title = index === 0 ? "Prepare" : index === picked.length - 1 ? "Finish" : "Cook";
+        return [segment.time, title, sentenceCase(segment.text)];
+      });
+    }
+
+    function recipeFromTranscript(url, transcript) {
+      const [language, languageCode] = detectLanguage(transcript);
+      const ingredients = extractIngredients(transcript.text);
+      const steps = extractMethodSteps(transcript.segments);
+      const foundAmounts = ingredients.filter(([, amount]) => !amount.includes("review")).length;
+      const confidence = Math.min(86, Math.max(58, 52 + ingredients.length * 4 + steps.length * 3));
+
+      return {
+        id: "transcript-import",
+        label: "Transcript Recipe",
+        sourceType: transcript.label.includes("page text") ? "Page Text" : "Transcript",
+        url,
+        language,
+        languageCode,
+        ingredientCount: ingredients.length,
+        duration: `${transcript.segments.length} caption cues`,
+        confidence,
+        title: transcript.label.includes("page text") ? "Recipe Card From YouTube Page Text" : "Recipe Card From YouTube Transcript",
+        summary: `A starter recipe card generated from ${transcript.label}. It uses source text to infer likely ingredients and cooking steps, then marks the parts that still need human review.`,
+        ingredients,
+        steps,
+        gaps: [
+          ["Visual-only details", "Captions may miss quantities, texture, heat level, or plating shown on screen."],
+          ["Ingredient amounts", foundAmounts ? "Amounts were inferred only when they appeared near ingredient names." : "No reliable amounts were found in the caption text."],
+          ["Source reliability", `Caption source: ${transcript.host}; verify against the original video before saving as final.`]
+        ]
+      };
     }
 
     function genericRecipeFromUrl(url) {
@@ -1295,7 +1624,7 @@
           ["--:--", "Synthesize recipe", "The LLM would create ingredients, method, timing, and review gaps from the extracted content."]
         ],
         gaps: [
-          ["Live extraction", "This public demo does not fetch YouTube transcripts."],
+          ["Transcript lookup", "No readable public caption track was available from the browser."],
           ["Human review", "Ingredient amounts and timing need confirmation from the real source."]
         ]
       };
@@ -1454,7 +1783,7 @@
       return genericRecipeFromUrl(url);
     }
 
-    function processSource(event) {
+    async function processSource(event) {
       event.preventDefault();
       const input = document.getElementById("sourceInput");
       const status = document.getElementById("processStatus");
@@ -1466,19 +1795,48 @@
       }
 
       selectedStep = 0;
-      selectedRecipe = selectRecipeFromUrl(url);
-      selectedRecipe = { ...selectedRecipe, url };
+      selectedRecipe = { ...selectRecipeFromUrl(url), url };
       resultReady = false;
-      status.textContent = "Processing link: transcript, language, ingredients, timing...";
+      status.textContent = "Looking for public captions, then building a recipe card...";
       render();
 
       clearTimeout(processTimer);
+      let usedFallback = false;
+      let finalStatus = null;
+      try {
+        const videoId = extractYouTubeVideoId(url);
+        if (videoId) {
+          const transcript = await fetchTranscript(videoId);
+          selectedRecipe = recipeFromTranscript(url, transcript);
+          finalStatus = `Readable captions found via ${transcript.host}. Recipe card generated from transcript text.`;
+          status.textContent = finalStatus;
+        } else {
+          usedFallback = true;
+          status.textContent = "No single YouTube video ID found. Using the fallback card for now.";
+        }
+      } catch (error) {
+        try {
+          const readerText = await fetchReaderText(url);
+          selectedRecipe = recipeFromTranscript(url, readerText);
+          finalStatus = `Captions were unavailable, so the card was generated from ${readerText.host} page text.`;
+          status.textContent = finalStatus;
+        } catch (readerError) {
+          usedFallback = true;
+          selectedRecipe = { ...selectRecipeFromUrl(url), url };
+          status.textContent = `Online text unavailable in-browser. Using fallback card. ${error.message}; ${readerError.message}`;
+        }
+      }
+
       processTimer = setTimeout(() => {
         selectedStep = 7;
         resultReady = true;
-        status.textContent = "Recipe card generated. Export the markdown note for LLM Wiki ingest.";
+        if (finalStatus) {
+          status.textContent = finalStatus;
+        } else if (!usedFallback) {
+          status.textContent = "Recipe card generated. Export the markdown note for LLM Wiki ingest.";
+        }
         render();
-      }, 850);
+      }, 350);
     }
 
     function render() {
